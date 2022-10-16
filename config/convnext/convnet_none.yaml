@@ -1,0 +1,106 @@
+#===============================================================================
+#                      Default Configuration for LSQ-Net
+#===============================================================================
+# Please do NOT modify this file directly. If you want to modify configurations,
+# please:
+# 1. Create a new YAML file and copy some bellowing options to it.
+# 2. Modify these options in your YAML file.
+# 3. run main.py with your configuration file in the command line, like this:
+#       $ python main.py path/to/your/config/file
+# The options modified in your configuration file will overwrite those in this
+# file.
+#============================ Environment ======================================
+
+# Experiment name
+name: convnet_none
+
+# Name of output directory. Checkpoints and logs will be saved at `pwd`/output_dir
+output_dir: out
+log_dir:
+# Device to be used
+device:
+  # Use CPU or GPU (choices: cpu, cuda)
+  type: cuda
+  # GPU device IDs to be used. Only valid when device.type is 'cuda'
+  gpu: [2]
+
+# Dataset loader
+dataloader:
+  # Dataset to train/validate (choices: imagenet, cifar10)
+  dataset: cifar10
+  # Number of categories in the specified dataset (choices: 1000, 10)
+  num_classes: 10
+  # Path to dataset directory
+  path: /localhome/fair/Dataset/imagenet
+  # Size of mini-batch
+  batch_size: 192
+  # Number of data loading workers
+  workers: 20
+  # Seeds random generators in a deterministic way (i.e., set all the seeds 0).
+  # Please keep it true when resuming the experiment from a checkpoint
+  deterministic: true
+  # Load the model without DataParallel wrapping it
+  serialized: false
+  # Portion of training dataset to set aside for validation (range: [0, 1))
+  val_split: 0.05
+
+resume:
+  # Path to a checkpoint to be loaded. Leave blank to skip
+  path:
+  # Resume model parameters only
+  lean: true
+
+log:
+  # Number of best scores to track and report
+  num_best_scores: 3
+  # Print frequency
+  print_freq: 20
+
+#============================ Model ============================================
+
+# Supported model architecture
+# choices:
+#     vgg11, vgg16, alexnet, resnet18, resnet34, resnet50, resnet101, resnet152
+model: convnet
+
+# mode: none, normal, fix
+sparsity:
+  mode: none
+  smooth: true
+  use_all_sparsity: false
+  weight:
+    layer: 0
+    n:
+    m:
+    n2:
+    m2:
+  activation:
+    layer: 0
+    n: 1
+    m: 16
+# Use pre-trained model
+pre_trained: true
+
+#============================ Training / Evaluation ============================
+
+# Evaluate the model without training
+# If this field is true, all the bellowing options will be ignored
+eval: false
+
+epoch: 210
+
+optimizer:
+  learning_rate: 0.01
+  momentum: 0.9
+  weight_decay: 0.0001
+
+# Learning rate scheduler
+lr_scheduler:
+  # Update learning rate per batch or epoch
+  update_per_batch: true
+
+  # Uncomment one of bellowing options to activate a learning rate scheduling
+
+  # Fixed learning rate
+  mode: fixed
+
