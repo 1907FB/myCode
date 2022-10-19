@@ -72,8 +72,8 @@ data_time = AverageMeter()
 losses = AverageMeter()
 top1 = AverageMeter()
 top5 = AverageMeter()
-print(len(constant.epo_num))
-print(constant.epo_num)
+logger.info(len(constant.epo_num))
+logger.info(constant.epo_num)
 for epoch in range(args.epoch):
     constant.epoch = epoch
     running_loss = 0.0

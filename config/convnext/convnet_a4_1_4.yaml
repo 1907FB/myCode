@@ -12,7 +12,7 @@
 #============================ Environment ======================================
 
 # Experiment name
-name: convnet_a4_1_4_less2
+name: convnet_a4_1_4
 
 # Name of output directory. Checkpoints and logs will be saved at `pwd`/output_dir
 output_dir: out/convnet
@@ -22,7 +22,7 @@ device:
   # Use CPU or GPU (choices: cpu, cuda)
   type: cuda
   # GPU device IDs to be used. Only valid when device.type is 'cuda'
-  gpu: [3]
+  gpu: [1]
 
 # Dataset loader
 dataloader:
@@ -46,7 +46,7 @@ dataloader:
 
 resume:
   # Path to a checkpoint to be loaded. Leave blank to skip
-  path: /home/tianshixu/code/myCode/out/convnet_none_20221014-070550/convnet_none_best.pth.tar
+  path: /home/tianshixu/code/myCode/out/convnet/convnet_none_20221016-110346/convnet_none_best.pth.tar
   # Resume model parameters only
   lean: true
 
@@ -68,12 +68,6 @@ sparsity:
   mode: normal
   smooth: true
   use_all_sparsity: false
-  weight:
-    layer: 0
-    n: 1
-    m: 8
-    n2: 1
-    m2: 16
   activation:
     layer: 4
     n: 1
@@ -89,7 +83,7 @@ pre_trained: false
 # If this field is true, all the bellowing options will be ignored
 eval: false
 
-epoch: 500
+epoch: 250
 
 optimizer:
   learning_rate: 0.01

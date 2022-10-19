@@ -33,7 +33,7 @@ dataloader:
   # Path to dataset directory
   path: /localhome/fair/Dataset/imagenet
   # Size of mini-batch
-  batch_size: 191
+  batch_size: 192
   # Number of data loading workers
   workers: 20
   # Seeds random generators in a deterministic way (i.e., set all the seeds 0).

@@ -12,9 +12,12 @@ import torch.nn.functional as F
 from timm.models.layers import trunc_normal_, DropPath
 from timm.models.registry import register_model
 
+from myLayer.sparse_conv import SparseConv2d
+from myLayer.sparse_linear import SparseLinear
 from sparsity.sparsity import sparsityNor
 from sparsity.sparsity_fix import sparsityFix
 from util import constant
+from torch.nn.parameter import Parameter
 
 
 class Block(nn.Module):
@@ -34,18 +37,25 @@ class Block(nn.Module):
         self.dwconv = nn.Conv2d(dim, dim, kernel_size=7, padding=3, groups=dim)  # depthwise conv
         self.norm = LayerNorm(dim, eps=1e-6)
         self.pwconv1 = nn.Linear(dim, 4 * dim)  # pointwise/1x1 convs, implemented with linear layers
+        # self.pwconv1 = SparseLinear(dim, 4 * dim)
         self.act = nn.GELU()
         self.pwconv2 = nn.Linear(4 * dim, dim)
+        # self.pwconv2 = SparseLinear(4 * dim, dim)
         self.gamma = nn.Parameter(layer_scale_init_value * torch.ones((dim)),
                                   requires_grad=True) if layer_scale_init_value > 0 else None
         self.drop_path = DropPath(drop_path) if drop_path > 0. else nn.Identity()
         self.mode = constant.mode
+        self.weight_sparse_flag = False
         if self.mode == 'normal':
             self.sparsity = sparsityNor
         elif self.mode == 'fix':
             self.sparsity = sparsityFix
         else:
             self.sparsity = None
+
+    def weight_sparse(self):
+        self.pwconv1.weight = Parameter(self.pwconv1.weight * self.pwconv1.sparsity_mask, requires_grad=True)
+        self.pwconv2.weight = Parameter(self.pwconv2.weight * self.pwconv2.sparsity_mask, requires_grad=True)
 
     def use_sparsity(self):
         ret = self.sparsity is not None and (constant.use_all_sparsity or (
@@ -71,8 +81,8 @@ class Block(nn.Module):
         #     x = self.sparsity(x, True)
         x = x.permute(0, 3, 1, 2)  # (N, H, W, C) -> (N, C, H, W)
         x = input + self.drop_path(x)
-        if self.use_sparsity():
-            x = self.sparsity(x)
+        # if self.use_sparsity():
+        #     x = self.sparsity(x)
         return x
 
 
@@ -100,6 +110,7 @@ class ConvNeXt(nn.Module):
         self.downsample_layers = nn.ModuleList()  # stem and 3 intermediate downsampling conv layers
         stem = nn.Sequential(
             nn.Conv2d(in_chans, dims[0], kernel_size=4, stride=4),
+            # SparseConv2d(in_chans, dims[0], kernel_size=4, stride=4),
             LayerNorm(dims[0], eps=1e-6, data_format="channels_first")
         )
         self.downsample_layers.append(stem)
@@ -107,6 +118,7 @@ class ConvNeXt(nn.Module):
             downsample_layer = nn.Sequential(
                 LayerNorm(dims[i], eps=1e-6, data_format="channels_first"),
                 nn.Conv2d(dims[i], dims[i + 1], kernel_size=2, stride=2),
+                # SparseConv2d(dims[i], dims[i + 1], kernel_size=2, stride=2),
             )
             self.downsample_layers.append(downsample_layer)
 
@@ -122,12 +134,13 @@ class ConvNeXt(nn.Module):
             cur += depths[i]
 
         self.norm = nn.LayerNorm(dims[-1], eps=1e-6)  # final norm layer
-        self.head = nn.Linear(dims[-1], num_classes)
-
+        # self.head = nn.Linear(dims[-1], num_classes)
+        self.head = SparseLinear(dims[-1], num_classes)
         self.apply(self._init_weights)
         self.head.weight.data.mul_(head_init_scale)
         self.head.bias.data.mul_(head_init_scale)
         self.mode = constant.mode
+        self.weight_sparse_flag = False
         if self.mode == 'normal':
             self.sparsity = sparsityNor
         elif self.mode == 'fix':
@@ -139,6 +152,13 @@ class ConvNeXt(nn.Module):
         if isinstance(m, (nn.Conv2d, nn.Linear)):
             trunc_normal_(m.weight, std=.02)
             nn.init.constant_(m.bias, 0)
+
+    def weight_sparse(self):
+        for i in self.downsample_layers:
+            for j in i:
+                if isinstance(j, nn.Conv2d):
+                    j.weight = Parameter(j.weight * j.sparsity_mask, requires_grad=True)
+        self.head.weight = Parameter(self.head.weight * self.head.sparsity_mask.detach(), requires_grad=True)
 
     def use_sparsity(self):
         ret = self.sparsity is not None and (constant.use_all_sparsity or (
@@ -155,6 +175,7 @@ class ConvNeXt(nn.Module):
         return self.norm(x.mean([-2, -1]))  # global average pooling, (N, C, H, W) -> (N, C)
 
     def forward(self, x):
+        # print(torch.sum(self.head.weight.data))
         constant.idx = 0
         x = self.forward_features(x)
         x = self.head(x)
@@ -204,12 +225,27 @@ model_urls = {
 
 
 @register_model
+def convnext_2222(pretrained=False, in_22k=False, **kwargs):
+    model = ConvNeXt(depths=[2, 2, 2, 2], dims=[96, 192, 384, 768], **kwargs)
+    return model
+
+@register_model
+def convnext_2242(pretrained=False, in_22k=False, **kwargs):
+    model = ConvNeXt(depths=[2, 2, 4, 2], dims=[96, 192, 384, 768], **kwargs)
+    return model
+
+
+@register_model
 def convnext_tiny(pretrained=False, in_22k=False, **kwargs):
     model = ConvNeXt(depths=[3, 3, 9, 3], dims=[96, 192, 384, 768], **kwargs)
     if pretrained:
+        # 当前模型的空state
+        tmp_state = model.state_dict()
         url = model_urls['convnext_tiny_22k'] if in_22k else model_urls['convnext_tiny_1k']
         checkpoint = torch.hub.load_state_dict_from_url(url=url, map_location="cpu", check_hash=True)
-        model.load_state_dict(checkpoint["model"])
+        pretrained_dict = {k: v for k, v in checkpoint["model"].items()}
+        tmp_state.update(pretrained_dict)
+        model.load_state_dict(tmp_state)
     return model
 
 

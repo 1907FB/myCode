@@ -57,9 +57,9 @@ if args.resume.path:
         model, args.resume.path, args.device.type, lean=True)
     print("ok")
 model = weight_sparsity(model, args.sparsity.weight.layer, args.sparsity.weight.m, args.sparsity.weight.n)
-register_hook(model)
+# register_hook(model)
 optimizer = optim.Adam(model.parameters(), lr=0.0001)
-optimizer.step = step
+# optimizer.step = step
 criterion = nn.CrossEntropyLoss().cuda()
 
 pymonitor = ProgressMonitor(logger)

@@ -1,5 +1,18 @@
+#===============================================================================
+#                      Default Configuration for LSQ-Net
+#===============================================================================
+# Please do NOT modify this file directly. If you want to modify configurations,
+# please:
+# 1. Create a new YAML file and copy some bellowing options to it.
+# 2. Modify these options in your YAML file.
+# 3. run main.py with your configuration file in the command line, like this:
+#       $ python main.py path/to/your/config/file
+# The options modified in your configuration file will overwrite those in this
+# file.
+#============================ Environment ======================================
+
 # Experiment name
-name: convnet_a4_3_16
+name: convnet_a4_1_8
 
 # Name of output directory. Checkpoints and logs will be saved at `pwd`/output_dir
 output_dir: out/convnet
@@ -9,7 +22,7 @@ device:
   # Use CPU or GPU (choices: cpu, cuda)
   type: cuda
   # GPU device IDs to be used. Only valid when device.type is 'cuda'
-  gpu: [0]
+  gpu: [1]
 
 # Dataset loader
 dataloader:
@@ -21,6 +34,15 @@ dataloader:
   path: /localhome/fair/Dataset/imagenet
   # Size of mini-batch
   batch_size: 196
+  # Number of data loading workers
+  workers: 20
+  # Seeds random generators in a deterministic way (i.e., set all the seeds 0).
+  # Please keep it true when resuming the experiment from a checkpoint
+  deterministic: true
+  # Load the model without DataParallel wrapping it
+  serialized: false
+  # Portion of training dataset to set aside for validation (range: [0, 1))
+  val_split: 0.05
 
 resume:
   # Path to a checkpoint to be loaded. Leave blank to skip
@@ -48,8 +70,8 @@ sparsity:
   use_all_sparsity: false
   activation:
     layer: 4
-    n: 3
-    m: 16
+    n: 1
+    m: 8
     n2:
     m2:
 # Use pre-trained model
@@ -72,7 +94,9 @@ optimizer:
 lr_scheduler:
   # Update learning rate per batch or epoch
   update_per_batch: true
+
   # Uncomment one of bellowing options to activate a learning rate scheduling
+
   # Fixed learning rate
   mode: fixed
 

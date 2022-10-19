@@ -3,7 +3,9 @@ from torch import nn
 from torchvision.models import vgg16, vgg19, resnet50, alexnet, mobilenet_v2
 from model.ResNet import ResNet18, ResNet34
 from model.VGG11 import vgg
-from model.convnext import convnext_tiny
+from model.convnext import convnext_tiny, convnext_2222, convnext_2242
+from myLayer.sparse_conv import SparseConv2d
+from myLayer.sparse_linear import SparseLinear
 from util import constant
 from util.myConv import _set_module
 
@@ -43,7 +45,22 @@ def get_model(model="vgg16", pretrained=True, mode='normal', smooth=False, num_c
     elif model == 'convnet':
         ret = convnext_tiny(pretrained=pretrained)
         name = 'downsample_layers.0.0'
-        tmp = nn.Conv2d(in_channels=3, out_channels=96, kernel_size=3, stride=1, padding=1)
+        tmp = SparseConv2d(in_channels=3, out_channels=96, kernel_size=3, stride=1, padding=1)
         _set_module(ret, name, tmp)
-        ret.head = nn.Linear(768, num_classes)
+        ret.head = SparseLinear(768, num_classes)
         return ret
+    elif model == 'convnet2222':
+        ret = convnext_2222(pretrained=pretrained)
+        name = 'downsample_layers.0.0'
+        tmp = SparseConv2d(in_channels=3, out_channels=96, kernel_size=3, stride=1, padding=1)
+        _set_module(ret, name, tmp)
+        ret.head = SparseLinear(768, num_classes)
+        return ret
+    elif model == 'convnet2242':
+        ret = convnext_2242(pretrained=pretrained)
+        name = 'downsample_layers.0.0'
+        tmp = SparseConv2d(in_channels=3, out_channels=96, kernel_size=3, stride=1, padding=1)
+        _set_module(ret, name, tmp)
+        ret.head = SparseLinear(768, num_classes)
+        return ret
+

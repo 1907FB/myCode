@@ -1,6 +1,7 @@
 import logging
 import os
 
+import torch
 import torch as t
 
 from util import constant
@@ -76,6 +77,15 @@ def load_checkpoint(model, chkp_file, model_device=None, strict=False, lean=Fals
 
     checkpoint_epoch = checkpoint.get('epoch', None)
     start_epoch = checkpoint_epoch + 1 if checkpoint_epoch is not None else 0
+
+    # tmp_state = model.state_dict()
+    # pretrained_dict = {k: v for k, v in checkpoint["state_dict"].items()}
+    # tmp_state.update(pretrained_dict)
+    # checkpoint["state_dict"] = tmp_state
+    # t.save(checkpoint, "/home/tianshixu/code/myCode/out/convnet/convnet_none_20221016-110346/convnet_none_best.pth.tar")
+    # print("ok")
+    # exit(0)
+    # model.load_state_dict(tmp_state)
 
     anomalous_keys = model.load_state_dict(checkpoint['state_dict'], strict)
     if anomalous_keys:

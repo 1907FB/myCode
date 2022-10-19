@@ -1,9 +1,7 @@
+import time
+
 import torch
 from torch import nn
-from apex.contrib.sparsity import ASP
-
-from model.get_model import get_model
-from sparsity.weight_sparsity import weight_sparsity
 
 
 class Student(object):
@@ -32,12 +30,73 @@ class Student(object):
 
 # model = get_model(model="resnet18").cuda()
 # weight_sparsity(model, 4)
-H, W = (16, 8)
-input = torch.rand(H, W)
-print(input)
-mask = torch.ones(H,W)
-mask[input>0.3] = 0
-print(mask)
-mask = mask.type(torch.bool)
-input[mask] =0
-print(input)
+# H, W = (16, 8)
+# input = torch.rand(H, W)
+# print(input)
+# mask = torch.ones(H,W)
+# mask[input>0.3] = 0
+# print(mask)
+# mask = mask.type(torch.bool)
+# input[mask] =0
+# print(input)
+def sparsify(x, patterns=[(2, 1)]):
+    # assuming x NCHW
+    N, C, H, W = x.shape
+
+    with torch.no_grad():
+        # torch.ones_like can guarantee mask and x on the same device
+        mask = torch.ones_like(x)
+
+        for pattern in patterns:
+            m, n = pattern
+            masked_x = (mask * x).reshape(N, C // m, m, H, W).abs_()
+            mask = mask.view(N, C // m, m, H, W)
+            _, idx = torch.topk(masked_x, m - n, dim=2, largest=False)
+            mask.scatter_(2, idx, 0.0)
+            mask = mask.view(N, C, H, W)
+
+    return mask * x
+
+
+def sparsify2(x, patterns=[(2, 1)]):
+    # assuming x NCHW
+    N, C, H, W = x.shape
+
+    with torch.no_grad():
+        # torch.ones_like can guarantee mask and x on the same device
+        mask = torch.ones_like(x)
+
+        for pattern in patterns:
+            m, n = pattern
+            masked_x = (mask * x).reshape(N, C // m, m, H, W).abs_()
+            mask = mask.view(N, C // m, m, H, W)
+            val, _ = torch.topk(masked_x, n, dim=2, largest=True)
+            val = val[:, :, n - 1:, :, :]
+            idx = masked_x < val
+            mask[idx] = 0
+            mask = mask.view(N, C, H, W)
+
+    return mask * x
+
+
+def main():
+    torch.cuda.set_device(1)
+    x = torch.randn(192, 32, 8, 8).cuda()
+    conv = nn.Conv2d(32, 32, 1, 1).cuda()
+    start = time.time()
+    sparse_x = sparsify2(x, patterns=[(4, 1)])
+    print(time.time() - start)
+
+    start = time.time()
+    sparse_x2 = sparsify2(x, patterns=[(4, 1)])
+    print(time.time() - start)
+
+    start = time.time()
+    sparse_x1 = sparsify(x, patterns=[(4, 1)])
+    print(time.time() - start)
+
+    print((sparse_x2 == sparse_x1).all())
+
+
+if __name__ == "__main__":
+    main()

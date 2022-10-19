@@ -46,7 +46,7 @@ dataloader:
 
 resume:
   # Path to a checkpoint to be loaded. Leave blank to skip
-  path: /home/tianshixu/code/myCode/out/convnet_none_20221014-070550/convnet_none_best.pth.tar
+  path: /home/tianshixu/code/myCode/out/convnet/convnet_none_20221016-110346/convnet_none_best.pth.tar
   # Resume model parameters only
   lean: true
 
@@ -68,12 +68,6 @@ sparsity:
   mode: normal
   smooth: true
   use_all_sparsity: false
-  weight:
-    layer: 0
-    n: 1
-    m: 8
-    n2: 1
-    m2: 16
   activation:
     layer: 4
     n: 1
